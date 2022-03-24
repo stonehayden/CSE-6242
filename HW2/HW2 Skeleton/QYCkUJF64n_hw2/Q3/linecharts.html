@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Line Charts</title>
+  <meta charset="utf-8">
+
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  <style>
+
+#signature{
+  position: absolute;
+    left: 1000px;
+    top: 2412px;
+
+}
+
+
+  </style>
+</head>
+
+
+<body>
+  
+</body>
+
+<script>
+  
+  var formatDate = d3.timeParse("%Y-%m-%d")//.parse;
+
+d3.dsv(",", "boardgame_ratings.csv", function(d) {
+  return {
+    "date": formatDate(d.date),
+    "Catan=count": d["Catan=count"],
+    "Dominion=count": d["Dominion=count"], 
+    "Dixit=count": d["Dixit=count"],
+     "Codenames=count": d["Codenames=count"], 
+     "Gloomhaven=count":d["Gloomhaven=count"], 
+     "Magic: The Gathering=count":d["Magic: The Gathering=count"], 
+     "Monopoly=count":d["Monopoly=count"], 
+     "Terraforming Mars=count":d[ "Terraforming Mars=count"]
+  }
+
+  }).then(function(data) {
+
+
+
+var margin = {top: 60, right: 180, bottom: 60, left: 80},
+    width = 1000 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("body").append("svg").attr("id","svg-a").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom) .append("g").attr("transform","translate(" + margin.left + "," + margin.top + ")");
+chart_title = svg.append("text").attr("id","title-a").text("Number of Ratings 2016-2020").attr("text-anchor","middle").attr("x",width/2).attr("y",-margin.top+40).attr("font-size","20px")
+
+
+  var xScale = d3.scaleTime().domain(d3.extent(data, function(d) { return d.date; }))
+.range([0, width]);
+
+  
+
+  yScale_max = -1
+  Columns = ["Catan=count", "Dominion=count", "Dixit=count", "Codenames=count", "Gloomhaven=count", "Magic: The Gathering=count", "Monopoly=count", "Terraforming Mars=count"]
+  Column_Names = ["Catan", "Dominion", "Dixit", "Codenames", "Gloomhaven", "Magic: The Gathering", "Monopoly", "Terraforming Mars"]
+  
+  for(c in Columns){
+  min_max_col = d3.extent(data, d => d[Columns[c]])
+  
+  if(yScale_max < min_max_col[1]){
+    yScale_max = min_max_col[1]
+  }
+  }
+
+
+
+  var yScale = d3.scaleLinear().domain([0,yScale_max]).range([height,0]); 
+
+
+
+ var xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%b %y")).tickValues(  data.map(d=>d.date )  )
+ .ticks(d3.utcMonth.every(5))   ;
+ var yAxis = d3.axisLeft(yScale) ;
+ 
+
+
+
+
+plotarea = svg.append("g").attr("id","plot-a")
+plotlines = plotarea.append("g").attr("id","lines-a")
+xaxis_area = plotarea.append("g").attr("id","x-axis-a").attr("class","xaxis").attr("transform", "translate(0," + (height) + ")")
+yaxis_area = plotarea.append("g").attr("id","y-axis-a").attr("transform", "translate(0,0)")
+
+
+column_iter = 0
+for(column_iter in Columns){
+
+ 
+  plotlines.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", d3.schemeCategory10[column_iter])
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x(function(d) { return xScale(d.date) })
+        .y(function(d) { return yScale(+d[Columns[column_iter]]) })
+        )
+
+      
+
+
+    plotlines.append("text")
+		.attr("transform", "translate(" + (width+3) + "," + yScale(    data.slice(-1)[0][Columns[column_iter]]  ) + ")")
+		.attr("dy", ".35em")
+		.attr("text-anchor", "start")
+		.style("fill",d3.schemeCategory10[column_iter])
+		.text(Column_Names[column_iter]);
+
+
+
+      }
+
+
+
+      xaxis_area.call(xAxis);
+  xaxis_area.append("text").attr("class","xaxisLabel").text("Months").attr("x", (width/2)).attr("y",height+margin.bottom-10).attr("text-anchor", "middle")
+  yaxis_area.call(yAxis);
+
+yaxis_area.append("text").attr("class","yaxisLabel").text("Num of Ratings").attr("transform", "rotate(-90)").attr("text-anchor", "middle").attr("x", (-height/2)+20).attr("y",-45)
+
+
+
+
+  const myNode = document.getElementsByClassName("xaxis");
+ const myNode_wkng = myNode[0].getElementsByClassName("tick");
+ 
+ iter_node = 2
+
+while (iter_node < myNode_wkng.length) {
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[iter_node-2])
+
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[iter_node-2])
+    iter_node = iter_node+1
+  }
+
+nodes_to_remove_at_last =  myNode_wkng.length %3;
+while(nodes_to_remove_at_last > 0){
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[myNode_wkng.length-1])
+  nodes_to_remove_at_last = nodes_to_remove_at_last - 1
+}
+ 
+
+
+
+})
+</script>
+
+
+
+
+<script>
+  
+  formatValue2_digit = d3.format(".2s");
+formatValue3_digit = d3.format(".3s");
+function formatValue(d){
+    if(d < 0){return formatValue2_digit(d)}
+    if(d < 100){return d}
+    if(d < 10000000){return formatValue2_digit(d)}
+    else{return formatValue3_digit(d)}
+}
+
+
+
+ function create_line_chart(title, yscale_label, chart_id,last_chart,chart_iter)
+{
+
+
+d3.dsv(",", "boardgame_ratings.csv", function(d) {
+  return {
+    "date": formatDate(d.date),
+    "Catan=count": d["Catan=count"],
+    "Dominion=count": d["Dominion=count"], 
+    "Dixit=count": d["Dixit=count"],
+     "Codenames=count": d["Codenames=count"], 
+     "Gloomhaven=count":d["Gloomhaven=count"], 
+     "Magic: The Gathering=count":d["Magic: The Gathering=count"], 
+     "Monopoly=count":d["Monopoly=count"], 
+     "Terraforming Mars=count":d[ "Terraforming Mars=count"],
+
+     "Catan=rank": d["Catan=rank"],
+    "Dominion=rank": d["Dominion=rank"], 
+    "Dixit=rank": d["Dixit=rank"],
+     "Codenames=rank": d["Codenames=rank"], 
+     "Gloomhaven=rank":d["Gloomhaven=rank"], 
+     "Magic: The Gathering=rank":d["Magic: The Gathering=rank"], 
+     "Monopoly=rank":d["Monopoly=rank"], 
+     "Terraforming Mars=rank":d[ "Terraforming Mars=rank"]
+
+  }
+
+  }).then(function(data) {
+
+
+
+var margin = {top: 60, right: 180, bottom: 60, left: 80},
+    width = 1000 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select("body").append("svg").attr("id","svg-"+chart_id).attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom) .append("g").attr("transform","translate(" + margin.left + "," + margin.top + ")");
+chart_title = svg.append("text").attr("id","title-"+chart_id).text(title).attr("text-anchor","middle").attr("x",width/2).attr("y",-margin.top+40).attr("font-size","20px")
+
+
+Columns = ["Catan=count", "Dominion=count", "Dixit=count", "Codenames=count", "Gloomhaven=count", "Magic: The Gathering=count", "Monopoly=count", "Terraforming Mars=count"]
+  Column_Names = ["Catan", "Dominion", "Dixit", "Codenames", "Gloomhaven", "Magic: The Gathering", "Monopoly", "Terraforming Mars"]
+  Columns_rank= ["Catan=rank", "Dominion=rank", "Dixit=rank", "Codenames=rank", "Gloomhaven=rank", "Magic: The Gathering=rank", "Monopoly=rank", "Terraforming Mars=rank"]
+
+
+  var xScale = d3.scaleTime().domain(d3.extent(data, function(d) { return d.date; })).range([0, width]);
+
+    
+  yScale_max = -1
+  for(c in Columns){
+  min_max_col = d3.extent(data, d => d[Columns[c]])
+  
+  if(yScale_max < min_max_col[1]){
+    yScale_max = min_max_col[1]
+  }
+  }
+
+  if(yscale_label == "linear"){
+
+  var yScale = d3.scaleLinear().domain([0,yScale_max]).range([height,0]); 
+
+
+  }
+   
+  if(yscale_label == "log scale"){
+
+var yScale = d3.scaleLog().domain([1,yScale_max]).range([height,0]); 
+
+
+}
+
+if(yscale_label == "Square root scale"){
+
+var yScale = d3.scaleSqrt().domain([0,yScale_max]).range([height,0]); 
+
+
+}
+
+
+
+
+ var xAxis = d3.axisBottom(xScale).tickFormat(d3.timeFormat("%b %y")).tickValues( data.map(d=>d.date)).ticks(d3.utcMonth.every(5))   ;
+ var yAxis = d3.axisLeft(yScale);
+ 
+
+
+
+
+ plotarea = svg.append("g").attr("id","plot-"+chart_id).attr("transform","translate(" + margin.left + "," + margin.top + ")");
+plotlines = plotarea.append("g").attr("id","lines-"+chart_id)
+xaxis_area = plotarea.append("g").attr("class","xaxis").attr("id","x-axis-"+chart_id).attr("transform", "translate(0," + (height) + ")")
+
+ 
+yaxis_area = plotarea.append("g").attr("id","y-axis-"+chart_id)
+legend = plotarea.append("g").attr("id","symbols-"+chart_id)
+label = plotarea.append("g").attr("id","legend-"+chart_id).attr("transform", "translate("+(width)+"," + (height) + ")")
+
+column_iter = 0
+for(column_iter in Columns){
+
+  show_legend = false
+  plotlines.append("path").datum(data)
+      .attr("fill", "none").attr("stroke", d3.schemeCategory10[column_iter]).attr("stroke-width", 1.5).attr("d", d3.line()
+        .x(function(d) { return xScale(d.date) })
+        .y(function(d) { return yScale(d[Columns[column_iter]]) })
+        )
+
+        plotlines.append("text")
+		.attr("transform", "translate(" + (width+10) + "," + yScale(    data.slice(-1)[0][Columns[column_iter]]  ) + ")")
+		.attr("dy", ".35em")
+		.attr("text-anchor", "start")
+		.style("fill",d3.schemeCategory10[column_iter])
+		.text(Column_Names[column_iter])
+  
+
+    
+      
+
+
+    if(Columns[column_iter] == "Catan=count"){show_legend = true}
+    if(Columns[column_iter] ==    "Codenames=count"){show_legend = true}
+    if(Columns[column_iter] == "Terraforming Mars=count"){show_legend = true}
+    if(Columns[column_iter] ==  "Gloomhaven=count"){show_legend = true}
+  
+     
+    
+    if( show_legend){
+      legend.selectAll(".dot"+column_iter).data(data).enter().append("circle") .attr("class", "dot"+column_iter ) .attr("fill",d3.schemeCategory10[column_iter]).attr("cx", d=> xScale(d.date) ).attr("cy", d => yScale(d[Columns[column_iter]]) ).attr("r", function(d,i){if((i-2)%3!=0){return 0}; return 10})
+    legend.selectAll(".dot_label"+column_iter).data(data).enter().append("text") .attr("class", "dot_label"+column_iter ) .attr("fill","black").attr("font-size","10px").text(function(d,i){ if((i-2)%3==0){return  d[ Columns_rank[column_iter]] } return"" } ).attr("x", d=> xScale(d.date)  ).attr("y", d=>yScale(d[Columns[column_iter]])+1  ).attr("text-anchor","middle");
+
+
+    }
+  
+ 
+   
+
+   
+
+      }
+
+      label.append("circle").attr("cx",35).attr("cy",-30).attr("r",20).attr("fill","black")
+      label.append("text").attr("x",20).attr("y",-25).text("rank").attr("fill","white")
+    label.append("text").attr("x",5).attr("y",0).text("BoardGameGeek rank").attr("font-size","10px")
+
+
+
+  xaxis_area.call(xAxis);
+  xaxis_area.append("text").attr("class","xaxisLabel").text("Months").attr("x", (width/2)).attr("y",height+margin.bottom-10).attr("text-anchor", "middle")
+
+  yaxis_area.call(yAxis);
+
+  yaxis_area.append("g").append("text").attr("class","yaxisLabel").text("Num of Ratings").attr("transform", "rotate(-90)").attr("text-anchor", "middle").attr("x", (-height/2)+20).attr("y",-45)
+
+
+  if(last_chart){
+    var signature= document.createElement("div");
+    signature.id  = "signature"
+    signature.innerHTML = "shayden33"
+    document.body.appendChild(signature)
+   //plotarea.append("div").attr("id",'signature').attr("transform", "translate("+width+"," + (height) + ")").append("text").text("").attr("x",0).attr("y",0)
+  }
+
+    const myNode = document.getElementsByClassName("xaxis");
+ const myNode_wkng = myNode[chart_iter].getElementsByClassName("tick");
+ 
+ iter_node = 2
+
+while (iter_node < myNode_wkng.length) {
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[iter_node-2])
+
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[iter_node-2])
+    iter_node = iter_node+1
+  }
+
+nodes_to_remove_at_last =  myNode_wkng.length %3;
+while(nodes_to_remove_at_last > 0){
+  myNode_wkng[0].parentNode.removeChild(myNode_wkng[myNode_wkng.length-1])
+  nodes_to_remove_at_last = nodes_to_remove_at_last - 1
+}
+ 
+
+
+})
+}
+</script>
+
+
+<script>
+  create_line_chart("Number of Ratings 2016-2020 with Rankings","linear","b",false,1)
+  create_line_chart("Number of Ratings 2016-2020 (Square root Scale)","Square root scale","c-1",false,2)
+  create_line_chart("Number of Ratings 2016-2020 (Log Scale)","log scale","c-2",true,3)
+
+
+
+ 
+</script>

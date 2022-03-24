@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+
+path.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+circle {
+  stroke: black;
+  stroke-width: 1.5px;
+}
+
+text {
+  fill: #000;
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+.labels_bold{
+    font-weight: 900;
+    font-size:6px;
+}
+
+.solid{
+   stroke:solid;
+}
+
+.dashed{
+   stroke-dasharray: 5,5; 
+}
+
+/* @answer to d2 */
+.fixed_node {
+  fill: #f00  !important;
+  stroke: #f00 ;
+}
+
+.node .fixed_node {
+  fill: #f00 !important;
+}
+
+
+</style>
+<meta charset="utf-8">
+<title></title></head>
+
+<body>
+<script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+<script>
+
+d3.dsv(",", "board_games.csv", function(d) {
+  return {
+    source: d.source,
+    target: d.target,
+    value: +d.value
+  }
+}).then(function(data) {
+
+  var links = data;
+
+  var nodes = {};
+
+
+  // compute the distinct nodes from the links.
+  links.forEach(function(link) {
+      link.source = nodes[link.source] || (nodes[link.source] = {name: link.source , degree:0});
+      link.target = nodes[link.target] || (nodes[link.target] = {name: link.target, degree:0});
+
+
+
+    nodes[link.source.name].degree= nodes[link.source.name].degree + 1
+    nodes[link.target.name].degree= nodes[link.target.name].degree + 1
+
+  });
+
+
+
+
+  var width = 1200,
+      height = 700;
+
+  var force = d3.forceSimulation().nodes(d3.values(nodes))
+      .force("link", d3.forceLink(links).distance(100)).force('center', d3.forceCenter(width / 2, height / 2))
+      .force("x", d3.forceX()).force("y", d3.forceY())
+      .force("charge", d3.forceManyBody().strength(-250)).alphaTarget(0).on("tick", tick);
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+  //@answer to e 
+var text= svg.append("text").attr("id","credit").text("shayden33").attr("text-anchor","end").attr('x', width).attr("y",20)
+
+  // add the links
+
+  //@answer to b line last 3 lines
+  var path = svg.append("g")
+      .selectAll("path")
+      .data(links)
+      .enter()
+      .append("path")
+      .attr("fill", "none")
+      .attr("stroke",d=> {if(d.value==1){return "green"} return "gray"})
+      .attr("stroke-width", d=> {if(d.value == 0){return "3px" }  else return "1px"})
+      .attr("class", d => {if(d.value==0){return "stroked"} else{return "dashed"}})
+   
+
+      ;
+
+  // define the nodes
+  var node = svg.selectAll(".node")
+      .data(force.nodes())
+      .enter().append("g")
+      .attr("class", "node")
+    
+
+
+ 
+
+  // add the nodes
+  node.append("circle")
+      .attr("fill", d=> { return d3.interpolateYlOrBr( d.degree/10)  })
+      .attr("id", function(d){
+         return (d.name.replace(/\s+/g,'').toLowerCase());
+      })
+      /* d3.min() is ensuring to limit max size to 30 */
+      .attr("r",  d=> {  return  d3.min([(d.degree)*4,30])  })
+      .on("dblclick", releasenode)
+      .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended));;
+
+
+ //@answer to a 
+ var lables = node.append("text")
+      .text(function(d) {
+        return d.name;
+      }).attr("text-anchor", "start")
+      .attr("font-weight",700)
+      .attr('x', d=> d3.min([2*d.degree+5,30])+6 )
+      .attr('y', d=> -6 )
+      .attr("font-size","6px")
+      .attr("class","labels_bold");
+
+
+
+
+  // add the curvy lines
+  function tick() {
+      path.attr("d", function(d) {
+          var dx = d.target.x - d.source.x,
+              dy = d.target.y - d.source.y,
+              dr = Math.sqrt(dx * dx + dy * dy);
+          return "M" +
+              d.source.x + "," +
+              d.source.y + "A" +
+              dr + "," + dr + " 0 0,1 " +
+              d.target.x + "," +
+              d.target.y;
+      });
+
+      node.attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")"; 
+      });
+  };
+
+  function dragstarted(d) {
+      //@answer to d.1 
+      //commented to write new code
+     /* if (!d3.event.active) force.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;*/
+      d3.select(this).attr("class", "fixed_node");
+     
+  };
+
+//@answer to d.1
+  function clamp(x, lo, hi) {
+  return x < lo ? lo : x > hi ? hi : x;
+}
+  function dragged(d) {
+       //@answer to d.1 
+      //commented to write new code
+      /*d.fx = d3.event.x;
+      d.fy = d3.event.y;*/
+      d.fx = clamp(event.x, 0, width);
+    d.fy = clamp(event.y, 0, height);
+   
+ 
+  };
+
+  function releasenode(d) {
+                  d.fx = undefined;
+				  d.fy = undefined;
+                  d3.select(this).classed("fixed_node", false);
+                
+              }
+
+
+  function dragended(d) {
+     /* if (!d3.event.active) force.alphaTarget(0);
+      if (d.fixed == true) {
+          d.fx = d.x;
+          d.fy = d.y;
+      }
+      else {
+          d.fx = null;
+          d.fy = null;
+      }*/
+     
+  };
+  
+  function dblclick(d){
+    d3.event.subject.fx = null;
+    d3.event.subject.fy = null;
+    d3.select(this).classed("fixed_node", false);
+}
+}).catch(function(error) {
+
+});
+
+</script>
+</body>
+</html>
